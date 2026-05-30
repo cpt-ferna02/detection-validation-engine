@@ -89,16 +89,7 @@ This project was built in a single day. Below are the real technical obstacles h
 
 ---
 
-### 🔴 Obstacle 1: VirtualBox Clipboard Not Working
-**Problem:** Bidirectional clipboard was enabled in VirtualBox settings but copy-paste between host and VM wasn't working.
-
-**Root Cause:** VBoxTray.exe (the Guest Additions tray process) was not running.
-
-**Fix:** Reinstalled VirtualBox Guest Additions via Devices → Insert Guest Additions CD Image, ran the installer as Administrator, and rebooted the VM. Also set up SSH as a permanent solution so clipboard sharing became unnecessary entirely.
-
----
-
-### 🔴 Obstacle 2: Atomic Red Team Installation Blocked by Windows Defender
+### 🔴 Obstacle 1: Atomic Red Team Installation Blocked by Windows Defender
 **Problem:** Running `Install-AtomicRedTeam -getAtomics` failed with `WriteErrorException` — Windows Defender quarantined the Atomics folder.
 
 **Root Cause:** Windows Defender real-time monitoring flagged the Atomic Red Team payloads as malicious.
@@ -109,7 +100,7 @@ This project was built in a single day. Below are the real technical obstacles h
 
 ---
 
-### 🔴 Obstacle 3: SSH Connection Reset by Windows VM
+### 🔴 Obstacle 2: SSH Connection Reset — Pivoted to WinRM
 **Problem:** Every SSH connection attempt returned `Connection reset by 192.168.1.92 port 22`.
 
 **Root Cause:** Multiple layered issues:
@@ -127,25 +118,7 @@ This project was built in a single day. Below are the real technical obstacles h
 
 ---
 
-### 🔴 Obstacle 4: Network Isolation — VMs on Different Subnets
-**Problem:** Arch VM (NAT, `10.0.2.15`) and Windows VM (Bridged, `192.168.1.92`) couldn't communicate.
-
-**Root Cause:** Different virtual network segments can't communicate directly.
-
-**Fix:** Changed Arch VM network adapter from NAT to Bridged, ran `sudo systemctl restart NetworkManager`. Both VMs landed on the `192.168.1.x` subnet.
-
----
-
-### 🔴 Obstacle 5: WinRM Authentication Failing (Account Disabled)
-**Problem:** WinRM connected to port 5985 but returned `InvalidCredentialsError`.
-
-**Root Cause:** `net user Administrator` showed `Account active: No`.
-
-**Fix:** `net user Administrator /active:yes`
-
----
-
-### 🔴 Obstacle 6: Disk Space Exhausted (100% Full)
+### 🔴 Obstacle 3: Disk Space Exhausted (100% Full)
 **Problem:** Splunk container failed to start with `no space left on device`.
 
 **Root Cause:** 49GB disk at 100% capacity. Culprits:
@@ -165,7 +138,7 @@ Freed ~8GB, bringing available space from 315MB to 3.5GB+.
 
 ---
 
-### 🔴 Obstacle 7: Splunk Minimum Disk Space Check Blocking Searches
+### 🔴 Obstacle 4: Splunk Minimum Disk Space Check Blocking Searches
 **Problem:** Splunk refused to execute searches — `The minimum free disk space (5000MB) reached`.
 
 **Root Cause:** Splunk's default minimum free disk threshold is 5000MB; lab machine only had ~3.5GB.
@@ -179,19 +152,10 @@ docker restart splunk
 
 ---
 
-### 🔴 Obstacle 8: Wazuh API Returning "No API Available"
-**Problem:** Wazuh dashboard showed "No API available to connect" and the REST API returned daemon errors.
+### 🔴 Obstacle 5: Wazuh Agent Showing "never_connected"
+**Problem:** Windows agent registered successfully but showed `never_connected` status in the Wazuh manager.
 
-**Root Cause:** Wazuh takes 3-5 minutes to fully initialize all daemons. Also, wrong credentials — the API uses `wazuh-wui`, not `admin`.
-
-**Fix:** Waited for full initialization, used correct API credentials: `wazuh-wui:MyS3cr37P450r.*-`
-
----
-
-### 🔴 Obstacle 9: Wazuh Agent Showing "never_connected"
-**Problem:** Windows agent registered successfully but showed `never_connected` status.
-
-**Root Cause:** `ossec.conf` had the manager IP wrapped in single quotes: `'192.168.1.80'` instead of `192.168.1.80`.
+**Root Cause:** `ossec.conf` had the manager IP wrapped in single quotes: `'192.168.1.80'` instead of `192.168.1.80` — caused by shell quoting in the MSI install argument.
 
 **Fix:**
 ```powershell
@@ -203,7 +167,7 @@ Restart-Service WazuhSvc
 
 ---
 
-### 🔴 Obstacle 10: Atomic Red Team "Not Recognized" via WinRM
+### 🔴 Obstacle 6: Atomic Red Team "Not Recognized" via WinRM
 **Problem:** `Invoke-AtomicTest` returned `CommandNotFoundException` in remote sessions.
 
 **Root Cause:** WinRM sessions don't load PowerShell profiles or modules automatically.
@@ -220,7 +184,7 @@ Invoke-AtomicTest {technique_id} -TestNumbers 1 -TimeoutSeconds 60
 
 ---
 
-### 🔴 Obstacle 11: 0% Detection Despite Attacks Firing
+### 🔴 Obstacle 7: 0% Detection Despite Attacks Firing
 **Problem:** All 6 attacks fired successfully but both SIEMs showed 0% detection.
 
 **Root Cause:**
